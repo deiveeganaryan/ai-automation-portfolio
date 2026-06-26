@@ -1,0 +1,393 @@
+{
+  "name": "AI Cold Email Generator (Sub-Workflow)",
+  "nodes": [
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_EMAIL_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Valid Mail Sender 1"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -720,
+        200
+      ],
+      "id": "1113bec5-8415-44ca-83c2-e78aa7146bf0",
+      "name": "Google Sheets3",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "dmWdkUvcaPbIbQoL",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a cold email writing expert specializing in outbound messages to real estate agents and real estate teams. Your task is to generate a personalized cold email using scraped data from Google Maps.\n\nYou are given the following inputs:\n\u2022 Name: {{ $json.text }}\n\u2022 Email: {{ $('Google Sheets3').item.json.emails }}\n\u2022 Description: {{ $('Google Sheets3').item.json.Description }}\n\u2022 Location: {{ $('Location Subdivider').item.json.output.subregion }}\n\n\u26a0 Important about \u201cDescription\u201d:\n- This field comes directly from Google Maps and may often be:\n    - Missing\n    - Just one or two generic words (like \u201cReal Estate Agency\u201d)\n    - Promotional phrases (\"We buy homes fast \ud83d\udcb8\")\n    - Noisy or broken content\n- Your job is to *interpret it intelligently*. Use it only if it makes logical sense.\n- If the description is missing, too short, irrelevant, or noisy, then *fall back to*: \u201cyour real estate business\u201d.\n\n\ud83e\udde0 Instructions:\n1. Use the inputs to generate a cold email targeting the recipient.\n2. Write like a real person. Friendly, conversational, and direct \u2014 but professional.\n3. Keep the email short (80\u2013120 words), focused on value and curiosity.\n4. Include:\n   - A quick intro and hook using Location or general relevance.\n   - Who I am: Aryan, co-founder at Aurallon.\n   - What I do: Help real estate agents and teams automate lead qualification and appointment booking using AI agents.\n   - A quick client result (e.g. increased showing bookings, instant lead replies, or pre-qualification).\n   - A relevance line using the *cleaned Description* (or the fallback).\n   - A CTA to book a 10-min call via Calendly (preferred), or reply as fallback.\n\nElite Copywriting Instructions for the Subject Line:\nYou must write a persuasive, scroll-stopping subject line as if you are a world-class copywriter trained in psychology, marketing, and direct response.\n It should:\nSpark curiosity or promise a compelling benefit\nBe specific or emotionally resonant\nBe clear, not clickbait \u2014 but still impossible to ignore\nReference the Location, problem, or result\nMake the reader want to open immediately\nUse one of the following angles as inspiration:\nBenefit-Oriented:\n\"More qualified leads without more showings?\"\n\"Get buyers booking appointments while you sleep\"\nCuriosity-Driven:\n\"A quick idea for {{ $json.text }} in {{ $('Location Subdivider').item.json.output.subregion }}\n\"\n\"Tried this yet, {{ $json.text }}?\"\nResult-Based:\n\"How agents in {{ $('Location Subdivider').item.json.output.subregion }}\n are closing more with AI\"\n\"This simple AI boosted showings 2x for a local team\"\nUse fallback terms if input data is weak:\n\"{{ $('Location Subdivider').item.json.output.subregion }}\n\" \u2192 \"your area\"\n\"{{ $('Google Sheets3').item.json.Description }}\" \u2192 \"your real estate business\"\n\nOutput Format:\nSubject: [Persuasive subject line \u2014 benefit-driven, curiosity-inducing, or result-based]\nHi {{ $json.text }},\n\n[Opening line \u2014 relevant to them or their Location]\n\n[Intro + value pitch + credibility line]\n\n[Relevance line using: {{ $('Google Sheets3').item.json.Description || \"your real estate business\" }} \u2014 sanitize it if needed]\n\n[CTA line with Calendly and reply option]\nCalendly Link: https://calendly.com/aurallonbiz/30min\nThanks,  \nAryan Deiveegan  \nwww.aurallon.com",
+        "hasOutputParser": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        480,
+        -40
+      ],
+      "id": "ac2426bb-a9be-4e04-80f3-5ba2ba450215",
+      "name": "Basic LLM Chain3",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -500,
+        200
+      ],
+      "id": "55270341-90cd-428a-a7b5-356383c8d766",
+      "name": "Loop Over Items3"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"subject\": {\n      \"type\": \"string\"\n    },\n    \"body\": {\n      \"type\": \"string\"\n    }\n  },\n  \"example\": {\n    \"subject\": \"Boost Your {{ $json.Location }} Listings with AI Automations\",\n    \"body\": \"Hi {{ $json.Name }},\\n\\nI noticed you work in {{ $json.Location }} and as a {{ $json.Description | default: \\\"{{ $json.Location }} real estate expert\\\" }}, you understand how critical it is to stay ahead of the pack. Our AI\u2011driven automations will help you generate qualified leads 24/7, automatically follow up with prospects, and create dynamic, hyper\u2011local content.\\n\\n\u2022 Generate qualified leads 24/7\\n\u2022 Automatically follow up with prospects\\n\u2022 Create dynamic, hyper\u2011local content\\n\\nI\u2019ve attached:\\n1. Top\u00a05\u00a0AI\u00a0Automations\u00a0for\u00a0Real\u00a0Estate.pdf\\n2. Local\u00a0Market\u00a0Success\u00a0Stories\u00a0\u2013\u00a0{{ $json.Location }}.pdf\\n3. Exclusive\u00a0Demo\u00a0Access\u00a0Link.txt\\n\\nLet\u2019s schedule a 15\u2011minute demo: https://calendly.com/aurallonbiz/30min\\n\\nBest regards,\\nAryan Deiveegan\\nwww.aurallon.com\"\n  }\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        620,
+        180
+      ],
+      "id": "a3de952a-7004-48a8-af83-00ab05b24ad0",
+      "name": "Structured Output Parser3"
+    },
+    {
+      "parameters": {
+        "amount": 80
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1060,
+        180
+      ],
+      "id": "e9db69fa-8385-4c8a-82ae-06d0dc66d9c8",
+      "name": "Wait3",
+      "webhookId": "af1d7530-3f77-41b1-a899-d92f9e3e0417"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Extract **ONLY** the first name from this email address {{ $('Google Sheets3').item.json.emails }} . Follow these steps meticulously:  \n\n1. **Isolate Local Part**:  \n   - Extract text before \"@\".  \n   *Example: `abovethecrowd.john_doe2023@domain.com` \u2192 `abovethecrowd.john_doe2023`*  \n\n2. **Split Segments**:  \n   - Split using delimiters: `. - _ 0-9 +`  \n   - **CamelCase Handling**: Split uppercase letters (e.g., `JohnDoe` \u2192 `[\"John\", \"Doe\"]`).  \n\n3. **Blocklist Filtering** (case-insensitive):  \n   - Reject segments matching:  \n     `info, admin, support, contact, mail, sales, hello, team, realestate, office, hr, noreply, marketing, service, make, above, crowd, property, homes, listings, agent, properties, management, realty, biz, corporate, help, inquiry`  \n4. **Validation**:  \n   - Starts with `A-Z`  \n   - Length: `2-12 letters`  \n   - No numbers/special characters  \n   - **Name Check**: Must match common first names (e.g., \"John\", \"Sarah\", NOT \"Service\" or \"AboveTheCrowd\").  \n\n5. **Select & Format**:  \n   - Take the **first valid segment**.  \n   - Format: `Proper Case` (e.g., `JOHN` \u2192 `John`).  \n\n6. **Fallback**:  \n   - If no valid segments, return `\"there\"`.  \n\n**Return ONLY the name or \"there\" with no extra text.**  \n\n---  \n\n### **Examples**  \n| Email Address                  | Output  |  \n|--------------------------------|---------|  \n| `service.michael@domain.com`   | Michael |  \n| `AboveTheCrowd@domain.com`     | there   |  \n| `AgentSarahL@domain.com`       | Sarah   |  \n| `JohnDoe2023@domain.com`       | John    |  \n| `Corporate.Help@domain.com`    | there   |  \n\n**No explanations. Only the result.**  "
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        100,
+        -40
+      ],
+      "id": "549fd975-1b40-43da-a4c9-4afdd1ac8281",
+      "name": "Basic LLM Chain13"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        200,
+        180
+      ],
+      "id": "16502985-b330-46e5-8944-5279234aa474",
+      "name": "Google Gemini Chat Model3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "bSZRg4yBxyQh7dEn",
+          "name": "acc 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "info@aurallon.com",
+        "toEmail": "={{ $('Google Sheets3').item.json.emails }}",
+        "subject": "={{ $json.output.subject }}",
+        "emailFormat": "text",
+        "text": "={{ $json.output.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        860,
+        60
+      ],
+      "id": "62a33050-f5e9-431b-85c1-b6108890322c",
+      "name": "Send Email3",
+      "webhookId": "1f9e043d-b3c2-4bb5-9e8f-a95e42a829dc",
+      "credentials": {
+        "smtp": {
+          "id": "RqwObzDfrdI3EpE9",
+          "name": "info acc"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        500,
+        180
+      ],
+      "id": "cde2b23b-2e93-447a-b75b-9e8f9a48b89d",
+      "name": "Google Gemini Chat Model17",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "bSZRg4yBxyQh7dEn",
+          "name": "acc 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        180
+      ],
+      "id": "21af4020-4ace-4a01-ab2e-de32c3c5956e",
+      "name": "Google Gemini Chat Model18",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "bSZRg4yBxyQh7dEn",
+          "name": "acc 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"state\": {\n      \"type\": [\"string\", \"null\"]\n    },\n    \"subregion\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\"state\", \"subregion\"],\n  \"additionalProperties\": false\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -140,
+        180
+      ],
+      "id": "5c85186a-350a-4012-8d2a-e30dbfac78a3",
+      "name": "Structured Output Parser9"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a geographic name parser. Split the input into state and subregion using these rules for this variable: {{ $('Google Sheets3').item.json.Location }}\n\n1. **Input Handling**:  \n   - If the input has **two or more words**:  \n     - **State**: First word (format: \"[State] state\").  \n     - **Subregion**: Remaining words (format: \"[Subregion] subregion\").  \n   - If **one word**: Return \"[Subregion] subregion, state null\".  \n\n2. **Formatting**:  \n   - Capitalize the first letter of each part.  \n   - Preserve hyphens/casing in multi-word names (e.g., \"Bay Area\" \u2192 \"Bay Area subregion\").  \n\n3. **Examples**:  \n   - `alabama huntsville` \u2192 `Alabama, Huntsville`  \n   - `colorado colorado springs` \u2192 `Colorado, Colorado Springs`  \n   - `georgia augusta` \u2192 `Georgia, Augusta`  \n   - `Bay area` \u2192 `Bay Area, null`  \n\n**Return ONLY the formatted output. No explanations.**  ",
+        "hasOutputParser": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        -280,
+        -40
+      ],
+      "id": "89527d49-33d1-4971-ae1d-6c75a1f8f410",
+      "name": "Location Subdivider"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1000,
+        200
+      ],
+      "id": "2c56f47a-fc14-4779-8ad2-aebe9c508c20",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets3": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain3": {
+      "main": [
+        [
+          {
+            "node": "Send Email3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items3": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Location Subdivider",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser3": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain3",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait3": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain13": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain13",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email3": {
+      "main": [
+        [
+          {
+            "node": "Wait3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model17": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain3",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model18": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Location Subdivider",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser9": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Location Subdivider",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Location Subdivider": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0393d21d-5c7b-4f80-a931-321af7b2ee3c",
+  "meta": {
+    "instanceId": "YOUR_N8N_INSTANCE_ID"
+  },
+  "id": "1MNAlxkhuiR4pOOA",
+  "tags": []
+}
