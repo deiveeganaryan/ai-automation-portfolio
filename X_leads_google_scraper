@@ -1,0 +1,561 @@
+{
+  "name": "Google Maps Email Extractor",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json.data\n \nconst regex = /https?:\\/\\/[^\\/]+/g\n \nurls = data.match(regex)\n \nreturn urls.map(url => ({json: {url: url}}))"
+      },
+      "id": "4a2d1b2f-1508-465a-9847-829ac35d3808",
+      "name": "Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7ecfbe72-c09a-482e-8f81-43d9e7bb2917",
+              "leftValue": "={{ $json.url }}",
+              "rightValue": "(google|gstatic|ggpht|schema|example)",
+              "operator": {
+                "type": "string",
+                "operation": "notRegex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9e59463b-f095-4e0d-b9e6-968fcd2d1d6a",
+      "name": "Filter",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "url",
+        "options": {}
+      },
+      "id": "0ae0d4f8-0c7b-4542-9b97-3783ab29356c",
+      "name": "Remove Duplicates",
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        860,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "id": "6e306de7-04a2-4963-9823-fed35eb21b2c",
+      "name": "HTTP Request1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        20
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "4d8becfe-c215-491b-9a77-1ebeee8995ff",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1080,
+        0
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json.data;\nconst location = $json.location || \"Unknown\";\n\n// Regex patterns\nconst emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.(?!png|jpg|gif|jpeg)[a-zA-Z]{2,}/g;\nconst nameRegex = /\"name\"\\s*:\\s*\"([^\"]+)\"/g;\nconst metaDescriptionRegex = /<meta\\s+name=[\"']description[\"']\\s+content=[\"'](.*?)[\"']/i;\n\n// Extract matches\nconst emails = data.match(emailRegex) || [];\nconst names = [...data.matchAll(nameRegex)].map(m => m[1]);\nconst metaDescriptionMatch = data.match(metaDescriptionRegex);\nconst metaDescription = metaDescriptionMatch ? metaDescriptionMatch[1] : null;\n\n// Build results\nconst results = emails.map((email, index) => ({\n    email: email,\n    agentName: names[index] || null,\n    metaDescription: metaDescription || null,\n    address: location // Always 'bay area' from injected field\n}));\n\nreturn [{ json: { emails: results } }];\n"
+      },
+      "id": "af025f87-131b-4da8-82b5-137920970311",
+      "name": "Code1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        480
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d7e287df-8ab5-4fed-ac38-8aae1258bdab",
+      "name": "Loop Over Items1",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        200,
+        200
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_MAPS_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Maps Scraper"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $json.email }}",
+            "agentName": "={{ $json.agentName }}",
+            "metaDescription": "={{ $json.metaDescription }}",
+            "location": "={{ $json.address }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "agentName",
+              "displayName": "agentName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metaDescription",
+              "displayName": "metaDescription",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "572b7402-92b6-497d-bf68-0d9dbb1d719e",
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2120,
+        280
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "dmWdkUvcaPbIbQoL",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "=https://www.google.com/maps/search/{{ $json.query }}",
+        "options": {}
+      },
+      "id": "02f96c0d-e02b-444c-8d67-4f7c7cb750d1",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "include": "specifiedFields",
+        "fieldsToInclude": "emails, location",
+        "options": {}
+      },
+      "id": "7d9d587e-ea60-4b58-8dc1-f5fe831d321a",
+      "name": "Aggregate",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1060,
+        320
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "be194615-d50d-4b5c-b5da-2b07b48ba283",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "email",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "id": "45aa9a92-779b-4be9-a2b2-fbe29495119d",
+      "name": "Split Out",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        320
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "email",
+        "options": {
+          "removeOtherFields": false
+        }
+      },
+      "id": "043abd1b-8e90-4058-99b8-53b82f16b0ce",
+      "name": "Remove Duplicates1",
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        320
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        560,
+        420
+      ],
+      "id": "c0f50ec5-19e8-446e-aabb-2bd5ab7baa7d",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the current item (HTML data)\nconst htmlData = $json.data;\n\n// Get location from Location Extractor node (n8n v1 compatible)\nconst locationData = $('Location Extractor').first().json.location || \"Unknown\";\n\n// Output with location injected\nreturn [\n  {\n    json: {\n      data: htmlData,\n      location: locationData\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        320
+      ],
+      "id": "b2da7c8c-4da2-4783-a8a6-6de2024d1f39",
+      "name": "Code2",
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const allEmails = [];\n\nfor (const group of $json.data) {\n  if (group.emails) {\n    allEmails.push(...group.emails);  // Spread all emails from each group\n  }\n}\n\nreturn allEmails.map(email => ({ json: email }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        320
+      ],
+      "id": "67e9a173-8a3c-4497-acde-e386ca01f152",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the query string safely\nconst query = $input.first().json.query\n\n// Terms to remove\nconst removeTerms = [\n  \"real estate agents\",\n  \"real estate agent\",\n  \"real estate teams\",\n  \"real estate team\",\n  \"realtors\",\n  \"realtor\"\n];\n\n// Normalize the query string\nlet location = query.toLowerCase().replace(/\\+/g, \" \");\n\n// Remove the terms\nremoveTerms.forEach(term => {\n  const regex = new RegExp(`\\\\b${term}\\\\b`, \"gi\");\n  location = location.replace(regex, \"\");\n});\n\n// Clean up whitespace\nlocation = location.replace(/\\s+/g, \" \").trim();\n\nreturn {\n  json: {\n    location\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        340
+      ],
+      "id": "a01bdb1a-815f-467f-bc08-55e17d073c25",
+      "name": "Location Extractor"
+    }
+  ],
+  "pinData": {
+    "Execute Workflow Trigger": [
+      {
+        "json": {
+          "query": "bay+area+real+estate+agents"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Location Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates1": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code3": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Location Extractor": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a11b7cd0-4609-41aa-a523-b9e5c21b1d72",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_N8N_INSTANCE_ID"
+  },
+  "id": "7WUJQWc6NT9UpiRl",
+  "tags": []
+}
