@@ -1,0 +1,206 @@
+{
+  "name": "AI Personalized Email Outreach Orchestrator",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2640,
+        -740
+      ],
+      "id": "2af32882-a02f-44b9-b9a9-747a5f961541",
+      "name": "When clicking \u2018Test workflow\u2019"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_PEG_1_WORKFLOW_ID",
+          "mode": "list",
+          "cachedResultName": "PEG 1"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -1900,
+        -1420
+      ],
+      "id": "a9f32e1c-ba0d-4a1f-b499-819d141f227a",
+      "name": "Execute Workflow"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_PEG_2_WORKFLOW_ID",
+          "mode": "list",
+          "cachedResultName": "PEG 2"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -1900,
+        -1120
+      ],
+      "id": "c49d3442-b2ce-428a-ad85-1bb2ed2011a0",
+      "name": "Execute Workflow1"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_PEG_3_WORKFLOW_ID",
+          "mode": "list",
+          "cachedResultName": "PEG 3"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -1880,
+        -740
+      ],
+      "id": "1c819565-789d-4566-9443-10786ccb4b70",
+      "name": "Execute Workflow2"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_PEG_4_WORKFLOW_ID",
+          "mode": "list",
+          "cachedResultName": "PEG 4"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -1860,
+        -440
+      ],
+      "id": "7a00553f-6045-4f72-99b9-bfb32b2c1696",
+      "name": "Execute Workflow3"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_PEG_5_WORKFLOW_ID",
+          "mode": "list",
+          "cachedResultName": "PEG 5"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -1840,
+        -120
+      ],
+      "id": "622df4f6-3fc7-4f9b-b4f0-9307491ef6b0",
+      "name": "Execute Workflow4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking \u2018Test workflow\u2019": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Execute Workflow1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Execute Workflow2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Execute Workflow3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Execute Workflow4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a3613c24-00e1-41bb-9bcc-24385a863683",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_N8N_INSTANCE_ID"
+  },
+  "id": "ht5Y7wq9Az5oIuyi",
+  "tags": []
+}
