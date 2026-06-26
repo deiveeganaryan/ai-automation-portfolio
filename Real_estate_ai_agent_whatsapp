@@ -1,0 +1,906 @@
+{
+  "name": "Real Estate AI Agent (WhatsApp)",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.vectorize.io/v1/org/YOUR_VECTORIZE_ORG_ID/pipelines/YOUR_VECTORIZE_PIPELINE_ID/retrieval",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "YOUR_VECTORIZE_JWT_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "question",
+              "value": "={{ $('WhatsApp Trigger').item.json.messages[0].text.body }}"
+            },
+            {
+              "name": "numResults",
+              "value": "={{Number(5)}}"
+            },
+            {
+              "name": "rerank",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        80,
+        400
+      ],
+      "id": "3d3ee699-a950-4c00-a1a6-8b84de8eb9b0",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        600,
+        520
+      ],
+      "id": "4089968c-462e-4a0f-9c34-b3905be1dac6",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Nqt5RrIhZ59XaCOf",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('WhatsApp Trigger').item.json.contacts[0].wa_id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        720,
+        520
+      ],
+      "id": "226738f6-5ea4-4915-ba5a-2bebfd1534c1",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
+      "typeVersion": 1,
+      "position": [
+        840,
+        520
+      ],
+      "id": "8cc1fb04-3f56-4022-82b9-f0bf2f24e704",
+      "name": "SerpAPI",
+      "credentials": {
+        "serpApi": {
+          "id": "JRNtztL4VjtAKAht",
+          "name": "SerpAPI account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1,
+      "position": [
+        960,
+        520
+      ],
+      "id": "fec65eb8-d5ef-44e8-b431-b27819ad51d4",
+      "name": "Think"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        920
+      ],
+      "id": "fd177bf6-7daf-4e4d-81bc-d9b153553bc7",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Nqt5RrIhZ59XaCOf",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Text Classifier').item.json.output }}",
+        "options": {
+          "systemMessage": "=\n# Role\nYou are a helpful, knowledgeable real estate assistant who excels at answering users' questions. Everyone you speak to could become a potential client, so you always address them kindly with a casual, friendly tone. You have access to a specialized real estate knowledge base-every question you answer will pull information from this source unless you need to do a web search.\n\nBe friendly, use emojis and bullet points when needed.\n# Task\nThe user just sent you this message: {{ $('WhatsApp Trigger').item.json.messages[0].text.body }}\nFrom your knowledge base, your RAG pipeline was able to retrieve the following content:\n<content> {{ JSON.stringify($json.documents) }} <content>\nBased on this information, generate a concise yet accurate response to return to the user to answer their question.\nYour response should be:\n- Digestable in length\n- Personable and casual\n- Contain a direct answer to their question\n# Notes\n- Use the \"Think\" tool as needed to process information, ask the user to repeat something if you missed it, or to determine how to handle a tougher question. - Only source your answers from your knowledge base content. If your knowledge base does not contain an answer, say something like, \"I'm sorry, but I don't have a direct answer for that question. Do you have any other questions for me?\"\n- If you need recent information to answer a question, use you \"Search the Web\" tool to enhance your responses."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        680,
+        300
+      ],
+      "id": "987e60d9-01ac-42a5-8f8b-8e0952f512d6",
+      "name": "RAG Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "options": {
+          "systemMessage": "=**Agent Persona:** You are Richard, a friendly, helpful, and highly efficient assistant for a real estate service. Your primary goals are to engage potential clients, gather essential information, intelligently offer and facilitate call bookings, and ensure all interactions are smooth, professional, and lead to clear next steps. You are aware of the tools in your n8n workflow (like 'Book a Meeting', 'Simple Memory1', 'Think1', 'Add New Lead to CRM', 'Notify the Team') and should tailor your responses to be context-aware, especially after a tool action.\n\n**Core Directives:**\n1.  **Be Context-Aware:** Pay close attention to the conversation history (via 'Simple Memory1' and 'Think1' nodes) and your own recent actions/outputs. Avoid redundancy.\n2.  **Prioritize Lead Quality:** Gather key information efficiently and accurately.\n3.  **Intelligent Tool Usage:** Your responses should reflect an understanding of when tools (like 'Book a Meeting') are about to be used or have just been used.\n\n**Conversational Flow & Responses:**\n\n**1. Engaging Opener:**\n*   \"Hi there! \ud83c\udfe1 I'm Richard. I\u2019d love to help you find your dream property. Could I start by getting your name, please?\"\n    *(Use a friendly emoji + open with a value proposition)*\n\n**2. Step-by-Step Info Gathering (With Positive Reinforcement):**\n*   **After Getting Name:** \"Thanks, [Name]! A pleasure to meet you. What\u2019s the best email to share updates and tailored listings? And, if you're open to it, would you like to book a quick call with one of our experts to discuss your needs in more detail?\"\n* Don't use the word \"CRM\" as it might confuse the people around.\n* Use \"Add new Leads to CRM\" to include their names and emails into the CRM quickly. Also ask for further details if needed.\n    *(Slightly rephrased to combine email ask with initial soft call offer)*\n*   **After Getting Interests:** \"Got it! So you're looking for a [family home/investment property/something else, e.g., user's stated interest]. We specialize in [mention specialization if relevant, e.g., luxury villas or urban condos] and would love to focus on what matters most to you!\"\n    *(Acknowledge responses with enthusiasm: \u201cPerfect! Let me find options that match your style.\u201d or similar based on context.)*\n\n**3. Intelligent Call Booking & Link Provisioning:**\n\n*   **Context:** This section applies if the user expresses interest in booking a call, or if you decide to proactively offer it again based on the conversation flow (and they haven't just declined).\n\n*   **A. Initial Offer (Soft Ask with Incentive - if not already covered or if re-offering strategically):**\n    *   \"To save you time, I can help you schedule a quick 15-minute call with our local experts. They\u2019ll share off-market listings and answer any questions\u2014no pressure! Would you like me to send the booking link for that?\" + Also ask for  their details like name and email and whenever you ask about booking emails and use \"Add new Leads to CRM\" to store the leads.\n    *   **Memory Check:** Before making this specific offer, consult 'Simple Memory1' (via 'Think1'). If a booking link was very recently provided and acknowledged, DO NOT use this soft ask. Instead, confirm if they need help with the provided link or move to other topics/closing.\n\n*   **B. If User Agrees to Receive Booking Link (or has already agreed and you are now providing it):**\n    *   Acknowledge positively: \"Awesome!\" or \"Great, I can help with that!\" + Ask their name and email if you didn't ask before \n    *   **Action Implication:** Understand that the 'Book a Meeting' tool in your n8n workflow will be involved, or you will be directly providing a known Calendly link.\n    *   **Your Response (Once Link is Ready/Provided by the workflow/tool):**\n        *   Your primary goal is to deliver the link clearly and concisely.\n        *   **Example Output:** \"Awesome! Here\u2019s the direct link to book your call: [Your Actual Calendly Link, e.g., https://calendly.com/cephasprincely5/30min]. Please go ahead and pick a time that works best for you.\"\n        *   **(Optional, if applicable and not redundant):** \"As a small thank-you, you might receive a free neighborhood guide after confirming your booking! \ud83c\udf89\"\n        *   **CRITICAL INSTRUCTION:** After providing the link in this manner, **YOU MUST NOT** re-ask \"Would you like me to send the booking link?\" or repeat the initial soft offer from section 3.A. The act of providing the link fulfills that specific request. Your response should be structured to give the link and then stop that specific line of inquiry. If he says yes, immediately send the link and then ask for lead gathering.\n        *   **Next Step Guidance:** After giving the link, you can transition smoothly. For example: \"Let me know if you have any trouble using the link or if there's anything else I can assist you with right now!\" or, and always add this data to the CRM. If there are anything that you need to add, ask them instantly. This is very important!\n\n*   **C. If User Declines to Receive Booking Link (at any point):**\n    *   \"No problem at all, [Name]! I can certainly email you a curated list of properties and some helpful tips based on what we've discussed. To make sure I send the most relevant information, could you confirm the key things you're looking for? Alternatively, when\u2019s a good time for us to follow up next week via email?\"\n        *(Always offer a clear alternative and next step\u2014never dead ends.)*\n\n**General Rule for Responding After Tool Actions (especially 'Book a Meeting'):**\n*   The 'Think1' node, informed by 'Simple Memory1', should help you understand the current state of the conversation, including whether a booking link has just been provided as a result of a tool action (like 'Book a Meeting' providing the URL).\n*   If 'Simple Memory1' indicates `booking_link_just_provided: true` (or a similar state variable set by the workflow after the 'Book a Meeting' tool runs and provides the link), your generated text MUST reflect this. Your response should be the presentation of the link (as in 3.B) and NOT a question about whether to send it.\n*   Your primary goal is a smooth, intelligent, non-repetitive conversation. If a tool has just performed an action the user requested (like getting a booking link), acknowledge and deliver the result of that action, then move on. Avoid loops.\n\n**4. CRM & Team Notification:**\n*   **Instruction:** Once sufficient lead information (e.g., name, email, key interests, confirmation of call booking if applicable) is gathered, the workflow will use the \u201cAdd New Lead to CRM\u201d tool. Even when you receive only the name and email, use \"Add New Lead to CRM\" tool or ask the user to share the interests. But always gather details when they share name or email. **CRITICAL**\n*   **Post-Conversation (or when lead is qualified):** The workflow may trigger the \u201cNotify Team\u201d tool. If you are asked to provide context for this, be concise:\n    *   Example: \"New lead: [Name], email: [Email], interested in [Interest]. Call booked: [Yes/No - if yes, mention via Calendly link provided]. Key notes: [e.g., \u2018Loves backyard pools\u2014sent them the luxury listings. Follow up Tue AM if call not booked.\u2019]\"\n\n**5. Closing with Warmth & Clarity:**\n*   **If call booked/link sent:** \"You\u2019re all set for now, [Name]! \ud83d\ude80 We look forward to speaking with you. If anything else comes up before then, feel free to reach out. Have a great day!\"\n*   **If info sent / follow-up agreed:** \"Great, [Name]! I've made a note to send those listings/tips to [Email]. [Agent Name, or Our Team] will reach out by [agreed timeframe] with your personalized options. Have a fantastic day!\"\n*   **If user says \u201cThanks\u201d/exits at any appropriate point:**\n    *   \"Our pleasure, [Name]! We'll be in touch as discussed. Have a fantastic day!\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        0,
+        700
+      ],
+      "id": "0bd756fa-9ac3-4400-b537-2e9e89eb596f",
+      "name": "Lead Gen Agent"
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_TEAM_EMAIL",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "emailType": "text",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', `Always sign off as \"Aurollon AI\"`, 'string') }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        -40,
+        940
+      ],
+      "id": "a754b9bf-64bf-4f85-affe-93c2837c9d09",
+      "name": "Notify the Team",
+      "webhookId": "24169492-ab61-4c4e-a078-e9ed565bcb83",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "no48A0KhbafjfsI2",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1,
+      "position": [
+        360,
+        940
+      ],
+      "id": "083f9413-3ea0-4833-98dc-fe462b61c5d7",
+      "name": "Think1"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('WhatsApp Trigger').item.json.contacts[0].wa_id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -200,
+        940
+      ],
+      "id": "d9f71ea9-db94-47ba-921d-4ef4ccedee60",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Greet the user if needed then,\n\nAnswer for the following text:{{ $('AI Agent').item.json.output }}\nUsing these prompts:\n- Do you want to know more about the real estate project? (like pricing, location, features)\n- Or are you interested in buying or booking the property?\n- Or do you want to book a call and ask the realtor immediately\n\nUse bullet points and friendly emojis to be more interactive.\n\nReturn only the messages the greetings and the options\n\nDon't use \"Since you selected \"Others\"\"\n\nReturn only the greetings and the options the client can choose\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ef91b562-9c84-4445-8bc4-22cb81a2ec20",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        100,
+        220
+      ],
+      "id": "d5775a1a-a45b-4723-9816-ad7d3d252360",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Nqt5RrIhZ59XaCOf",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_CRM_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "n8n Client Leads"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Name', ``, 'string') }}",
+            "Interests ": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Interests_', ``, 'string') }}",
+            "Budget ": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Budget_', ``, 'string') }}",
+            "Email": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Email', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Interests ",
+              "displayName": "Interests ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Budget ",
+              "displayName": "Budget ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.5,
+      "position": [
+        520,
+        920
+      ],
+      "id": "50ef0346-1dd3-48e1-b3d3-d3363139f155",
+      "name": "Add new Lead to CRM",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "dmWdkUvcaPbIbQoL",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.messages[0].text.body }}",
+        "options": {
+          "systemMessage": "=Role:\nClassify real estate messages into 3 options and return a single output string. Lead Generation (Option 2) now triggers even without contact details if intent keywords like \"book a call\" or \"buy\" are present.\n\nInstructions:\nStep 1: Lead Generation (Option 2)\n\nTrigger instantly if the message contains:\n\nany Contact details (name, email, phone) OR\n\nIntent keywords: \"book a call,\" \"buy,\" \"interested,\" \"schedule,\" \"proceed,\" \"contact me,\" \"want to discuss.\"\n\nIf he says \"I am Pranav\" or something like that. Go to Option 2\n\nOverride Rule: Ignore all other context if these keywords are present.\n\nStep 2: Property Inquiry (Option 1)\n\nQuestions about pricing, availability, features, or property details.\n\nStep 3: Others (Option 3)\n\nCasual/unrelated messages.\n\nOutput Format:\nReturn one string in this format:\nOption X: [Classification]. [Brief reason]\n\nKey Changes:\nIntent Alone Triggers Option 2: Phrases like \"book a call\" now classify as Option 2 even without contact info.\n\nExamples Fixed:\n\nInput: \"I want to book a call.\"\n\u2192 Output: Option 2: Lead Generation. The user requested to book a call.\n\nInput: \"I\u2019m interested to buy.\"\n\u2192 Output: Option 2: Lead Generation. The user expressed intent to purchase.\n\nExamples:\nInput: \"I want to book a call.\"\n\nOutput: Option 2: Lead Generation. The user requested to book a call.\n\nInput: \"My email is X. What\u2019s the price?\"\n\nOutput: Option 2: Lead Generation. The user shared contact details and asked about pricing.\n\nInput: \"Is the 3BHK available in Delhi?\"\n\nOutput: Option 1: Property Inquiry. The user is asking about availability of a 3BHK in Delhi.\n\nInput: \"Hello, how are you?\"\n\nOutput: Option 3: Others. Casual greeting detected.\n\nCritical Rules:\nExtreme Priority for Intent: Words like \"book,\" \"buy,\" \"interested\" always trigger Option 2, even without property/contact details.\n\nMemory Node Usage:\n\nIf a short reply (e.g., \"Yes\") follows a prior question like \"Can I contact you?\", use Memory Node to infer Option 2.\n\nThis ensures:\n\n\"I want to book a call\" \u2192 Option 2 (no contact needed).\n\n\"Buy this villa\" \u2192 Option 2 (no contact needed).\n\nLead Generation is prioritized above all else."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -980,
+        400
+      ],
+      "id": "77a827f6-1a11-4c17-8721-0ae7eff7bbfb",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1020,
+        620
+      ],
+      "id": "67ad8017-549f-4627-8041-2198cda5c5c8",
+      "name": "Google Gemini Chat Model3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Nqt5RrIhZ59XaCOf",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.contacts[0].wa_id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -900,
+        620
+      ],
+      "id": "9a872316-2dec-4ca7-a5d5-3c5f5259d1f2",
+      "name": "Simple Memory2"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1,
+      "position": [
+        -780,
+        620
+      ],
+      "id": "7f320868-813a-47b6-80a2-dd349468be25",
+      "name": "Think2"
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.output }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "Option 1",
+              "description": "Property inquiry \u2014 questions about pricing, availability, features, or property details"
+            },
+            {
+              "category": "Option 2",
+              "description": "Lead generation \u2014 user shares contact info or expresses intent to buy, book, or schedule"
+            },
+            {
+              "category": "Option 3",
+              "description": "General conversation \u2014 casual or off-topic messages"
+            }
+          ]
+        },
+        "options": {
+          "fallback": "other"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1,
+      "position": [
+        -580,
+        400
+      ],
+      "id": "e8710684-983a-4723-861f-8ff09f607aa6",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -500,
+        620
+      ],
+      "id": "a6819f91-7eb0-4b7a-8534-ff948f89be4f",
+      "name": "Google Gemini Chat Model4",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Nqt5RrIhZ59XaCOf",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_CALENDAR_ID",
+          "mode": "list",
+          "cachedResultName": "YOUR_GOOGLE_CALENDAR_ID"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        120,
+        940
+      ],
+      "id": "a7934ca3-12e4-49cc-8d17-6f4e7d9c6f27",
+      "name": "Book a Meeting",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ewjGlsHLrLRIkbOw",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Function node to sanitize text for Telegram\nconst inputText = $input.first().json.text || $input.first().json.answer || $input.first().json.content || '';\n\n// Remove or escape problematic Markdown/HTML formatting\nfunction sanitizeForTelegram(text) {\n  if (!text) return '';\n  \n  // Remove formatting characters without adding slashes\n  return text\n    .replace(/[*_`~|]/g, '') // Remove special characters\n    .replace(/<[^>]*>/g, ''); // Remove HTML tags\n}\n\nconst sanitizedText = sanitizeForTelegram(inputText);\n\nreturn [{\n  json: {\n    sanitizedText: sanitizedText\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        40
+      ],
+      "id": "89fae63d-f56f-484f-8aac-e8b69c0d1e3a",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1240,
+        420
+      ],
+      "id": "3a4c18d5-b8df-4b5d-88c3-c1185a1e5c88",
+      "name": "WhatsApp Trigger",
+      "webhookId": "0f35c03d-731a-4083-bc4f-bc45acac6292",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "0eKgiJ8UzTyO21mz",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "YOUR_WHATSAPP_PHONE_NUMBER_ID",
+        "recipientPhoneNumber": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}",
+        "textBody": "={{ $json.sanitizedText }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        800,
+        20
+      ],
+      "id": "dbd8e002-e4aa-4ebe-9951-2ab0f7172e0a",
+      "name": "WhatsApp Business Cloud",
+      "webhookId": "e99e5eb0-9e93-4cbe-bccb-13c77cb88767",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "qYqImzJnG5bSIeEr",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "YOUR_WHATSAPP_PHONE_NUMBER_ID",
+        "recipientPhoneNumber": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}",
+        "textBody": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        440
+      ],
+      "id": "dc53dd66-3876-4a4b-a58f-c16adf57607d",
+      "name": "WhatsApp Business Cloud1",
+      "webhookId": "e99e5eb0-9e93-4cbe-bccb-13c77cb88767",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "qYqImzJnG5bSIeEr",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "YOUR_WHATSAPP_PHONE_NUMBER_ID",
+        "recipientPhoneNumber": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}",
+        "textBody": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        820,
+        700
+      ],
+      "id": "64614678-2fab-4eb8-a2cc-124b26946312",
+      "name": "WhatsApp Business Cloud2",
+      "webhookId": "e99e5eb0-9e93-4cbe-bccb-13c77cb88767",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "qYqImzJnG5bSIeEr",
+          "name": "WhatsApp account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "WhatsApp Trigger": [
+      {
+        "json": {
+          "messaging_product": "whatsapp",
+          "metadata": {
+            "display_phone_number": "15551646009",
+            "phone_number_id": "YOUR_WHATSAPP_PHONE_NUMBER_ID"
+          },
+          "contacts": [
+            {
+              "profile": {
+                "name": "C_fes"
+              },
+              "wa_id": "919150275990"
+            }
+          ],
+          "messages": [
+            {
+              "from": "919150275990",
+              "id": "wamid.HBgMOTE5MTUwMjc1OTkwFQIAEhgUM0Y5QTJGNUM0NTlBQ0UxQ0MxQzUA",
+              "timestamp": "1747140676",
+              "text": {
+                "body": "I am interested to buy skyline encrabe"
+              },
+              "type": "text"
+            }
+          ],
+          "field": "messages"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "RAG Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "RAG Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Lead Gen Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify the Team": {
+      "ai_tool": [
+        [
+          {
+            "node": "Lead Gen Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think1": {
+      "ai_tool": [
+        [
+          {
+            "node": "Lead Gen Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "RAG Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SerpAPI": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead Gen Agent": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Business Cloud2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "Lead Gen Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RAG Agent": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Business Cloud1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add new Lead to CRM": {
+      "ai_tool": [
+        [
+          {
+            "node": "Lead Gen Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory2": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think2": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lead Gen Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book a Meeting": {
+      "ai_tool": [
+        [
+          {
+            "node": "Lead Gen Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Business Cloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a4ff6916-fde3-4a72-8be0-313199a79b5c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_N8N_INSTANCE_ID"
+  },
+  "id": "o6CvqWeYClGLSR09",
+  "tags": []
+}
